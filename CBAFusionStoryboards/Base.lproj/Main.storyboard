@@ -2,6 +2,7 @@
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
+        <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21678"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -122,13 +123,13 @@
         <!--Communication View Controller-->
         <scene sceneID="wWO-Zx-DmC">
             <objects>
-                <viewController id="tJr-8l-rS7" customClass="CommunicationViewController" customModule="CBAFusionStoryboards" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController modalPresentationStyle="fullScreen" id="tJr-8l-rS7" customClass="CommunicationViewController" customModule="CBAFusionStoryboards" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="w37-md-K39">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="842"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" alignment="center" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="fTt-UO-ZtP">
-                                <rect key="frame" x="46.666666666666657" y="390" width="300" height="62.333333333333314"/>
+                                <rect key="frame" x="46.666666666666657" y="395" width="300" height="62.333333333333314"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Recipient" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8sZ-KN-Yg4">
                                         <rect key="frame" x="0.0" y="0.0" width="300" height="20.333333333333332"/>
@@ -153,7 +154,7 @@
                                 </constraints>
                             </stackView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="sup-Yr-uWD">
-                                <rect key="frame" x="290.33333333333331" y="757.66666666666663" width="52.666666666666686" height="34.333333333333371"/>
+                                <rect key="frame" x="290.33333333333331" y="767.66666666666663" width="52.666666666666686" height="34.333333333333371"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="Call"/>
                                 <connections>
@@ -165,7 +166,7 @@
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="Back"/>
                                 <connections>
-                                    <segue destination="74r-nD-qTk" kind="unwind" unwindAction="unwindSegue:" id="1g9-RB-tjF"/>
+                                    <segue destination="74r-nD-qTk" kind="unwind" unwindAction="unwindSegue:" id="dAx-R9-aWH"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -193,17 +194,17 @@
         <!--Call View Controller-->
         <scene sceneID="hxX-Cd-k9O">
             <objects>
-                <viewController id="eNy-aV-BvC" customClass="CallViewController" customModule="CBAFusionStoryboards" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="CallViewController" modalPresentationStyle="fullScreen" id="eNy-aV-BvC" customClass="CallViewController" customModule="CBAFusionStoryboards" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="d75-Yh-L59">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="842"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Wrh-sO-QLx">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="588"/>
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="598"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xQz-v4-lG3">
-                                <rect key="frame" x="227" y="642" width="150" height="200"/>
+                                <rect key="frame" x="227" y="652" width="150" height="200"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="150" id="MCF-vP-hI2"/>
@@ -211,15 +212,15 @@
                                 </constraints>
                             </view>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="HrZ-1D-dQ3">
-                                <rect key="frame" x="31" y="807" width="86" height="35"/>
+                                <rect key="frame" x="31" y="817" width="86" height="35"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="End Call"/>
                                 <connections>
-                                    <segue destination="vyD-ov-Njy" kind="unwind" unwindAction="unwindSegue:" id="kxL-tC-E2G"/>
+                                    <segue destination="vyD-ov-Njy" kind="unwind" unwindAction="unwindSegue:" id="vRB-5b-zy9"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="fvj-KU-KOQ">
-                                <rect key="frame" x="252" y="596" width="125" height="35"/>
+                                <rect key="frame" x="252" y="606" width="125" height="35"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" title="Switch Views"/>
                                 <connections>
@@ -243,15 +244,7 @@
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="localHeightConstraint" destination="Nhb-ex-kiQ" id="td0-B2-fDw"/>
-                        <outlet property="localVideoBottomConstraint" destination="2Gb-P9-lGk" id="UVR-R8-Iia"/>
-                        <outlet property="localVideoTopConstraint" destination="4Wd-Hg-zd1" id="N7U-AB-ngs"/>
-                        <outlet property="localVideoTrailingConstraint" destination="i1U-s6-qWa" id="GYH-Ga-Dua"/>
                         <outlet property="localVideoView" destination="xQz-v4-lG3" id="x1o-mG-l7T"/>
-                        <outlet property="localWidthContraint" destination="MCF-vP-hI2" id="laG-Um-Duh"/>
-                        <outlet property="remoteVideoLeadingConstraint" destination="4sG-Q7-Zjb" id="yIj-Ya-5q1"/>
-                        <outlet property="remoteVideoTopConstraint" destination="sdM-p4-cuq" id="N99-ZP-OPY"/>
-                        <outlet property="remoteVideoTrailingConstraint" destination="vWc-V4-fCB" id="ejY-91-Djq"/>
                         <outlet property="remoteVideoView" destination="Wrh-sO-QLx" id="GRr-be-1Cm"/>
                     </connections>
                 </viewController>

@@ -10,7 +10,7 @@ import FCSDKiOS
 import OSLog
 
 class AuthenticationViewController: UIViewController {
-
+    
     
     @IBOutlet var usernameTextField: UITextField!
     @IBOutlet var passwordTextField: UITextField!
@@ -18,7 +18,6 @@ class AuthenticationViewController: UIViewController {
     @IBOutlet var serverTextField: UITextField!
     @IBOutlet var portTextField: UITextField!
     
-//    let logger = Logger(subsystem: "CBAFusion", category: "CBAFusion")
     var sessionExists = false
     var acbuc: ACBUC?
     var uc: ACBUC? {
@@ -54,17 +53,29 @@ class AuthenticationViewController: UIViewController {
         self.networkRepository?.networkRepositoryDelegate = networkRepository
         dismissKeyboard()
     }
-
+    
+    override func viewWillAppear(_ animated: Bool) {
+        if loginTapped {
+            Task {
+                await logout()
+            }
+        }
+    }
+    
+    
+    var loginTapped = false
     @IBAction func loginButton(_ sender: Any) {
-        Task {
-            await loginUser(networkStatus: true)
+        if !loginTapped {
+            Task {
+                await loginUser(networkStatus: true)
+            }
         }
     }
     
     func requestLoginObject() -> LoginRequest {
         return LoginRequest(
-            username: "1001",
-            password: "123"
+            username: usernameTextField.text ?? "",
+            password: passwordTextField.text ?? ""
         )
     }
     
@@ -87,11 +98,11 @@ class AuthenticationViewController: UIViewController {
             await fireStatus(response: response)
             
             self.sessionID = payload.sessionid
-            await self.createSession(sessionid: payload.sessionid, networkStatus: networkStatus)
-        
+            try await self.createSession(sessionid: payload.sessionid, networkStatus: networkStatus)
+            
         } catch {
+            loginTapped = false
             await errorCaught(error: error)
-//            self.logger.error("Error Logging in Error: \(error.localizedDescription)")
         }
     }
     
@@ -104,16 +115,21 @@ class AuthenticationViewController: UIViewController {
         guard let httpResponse = response as? HTTPURLResponse else {return}
         switch httpResponse.statusCode {
         case 200...299:
-break
+            break
         case 401:
+            loginTapped = false
             await showAlert(response: httpResponse)
         case 402...500:
+            loginTapped = false
             await showAlert(response: httpResponse)
         case 501...599:
+            loginTapped = false
             await showAlert(response: httpResponse)
         case 600:
+            loginTapped = false
             await showAlert(response: httpResponse)
         default:
+            loginTapped = false
             await showAlert(response: httpResponse)
         }
     }
@@ -131,33 +147,31 @@ break
     }
     
     /// Create the Session
-    func createSession(sessionid: String, networkStatus: Bool) async {
+    func createSession(sessionid: String, networkStatus: Bool) async throws {
         self.uc = await ACBUC.uc(withConfiguration: sessionid, delegate: self)
         await self.uc?.setNetworkReachable(networkStatus)
         self.uc?.acceptAnyCertificate(true)
         self.uc?.useCookies = true
-        Task.detached {
+        Task {
             await self.uc?.startSession()
         }
         self.connection = self.uc?.connection != nil
-            
+        
         await MainActor.run {
             self.sessionExists = true
         }
-        
-        performSegue(withIdentifier: "presentCommunication", sender: self)
+        loginTapped = true
     }
-
+    
     
     /// Logout and stop the session
     func logout() async {
-//        self.logger.info("Logging out of server: \(self.serverTextField.text ?? "") with: \(self.usernameTextField.text ?? "")")
         await MainActor.run {
-        self.showProgress = true
+            self.showProgress = true
         }
         let loginCredentials = Login(
-            username: usernameTextField.text ?? "1001",
-            password: passwordTextField.text ?? "123",
+            username: usernameTextField.text ?? "",
+            password: passwordTextField.text ?? "",
             server: serverTextField.text ?? "",
             port: portTextField.text ?? "",
             secureSwitch: true,
@@ -177,11 +191,11 @@ break
             }
         } catch {
             await errorCaught(error: error)
-//            self.logger.error("\(error.localizedDescription)")
             await MainActor.run {
                 self.showProgress = false
             }
         }
+        loginTapped = false
     }
     
     func stopSession() async {
@@ -198,48 +212,61 @@ break
         let destinationVC = segue.destination as! CommunicationViewController
         destinationVC.acbuc = self.acbuc
     }
+    
+    @IBAction func unwindSegue(_ sender: UIStoryboardSegue) {
+        print("Dismissed \(#function)")
+        if sender.source is CommunicationViewController {
+            if loginTapped {
+                Task {
+                    await logout()
+                }
+            }
+        }
+    }
 }
 
 
 extension AuthenticationViewController: ACBUCDelegate {
     func didStartSession(_ uc: ACBUC) async {
-//        self.logger.info("Started Session \(String(describing: uc))")
+        print("Started Session \(String(describing: uc))")
+        await ACBClientPhone.requestMicrophoneAndCameraPermission(true, video: true)
+        performSegue(withIdentifier: "presentCommunication", sender: self)
     }
     
     func didFail(toStartSession uc: ACBUC) async {
-//        self.logger.info("Failed to start Session \(String(describing: uc))")
+        print("Failed to start Session \(String(describing: uc))")
     }
     
     func didReceiveSystemFailure(_ uc: ACBUC) async {
-//        self.logger.info("Received system failure \(String(describing: uc))")
+        print("Received system failure \(String(describing: uc))")
     }
     
     func didLoseConnection(_ uc: ACBUC) async {
-//        self.logger.info("Did lose connection \(String(describing: uc))")
+        print("Did lose connection \(String(describing: uc))")
     }
     
     func uc(_ uc: ACBUC, willRetryConnection attemptNumber: Int, in delay: TimeInterval) async {
-//        self.logger.info("We are trying to reconnect to the network \(uc), \(attemptNumber), \(delay)")
-            await self.uc?.startSession()
-            await MainActor.run {
+        print("We are trying to reconnect to the network \(uc), \(attemptNumber), \(delay)")
+        await self.uc?.startSession()
+        await MainActor.run {
             self.sessionExists = true
         }
     }
     
     func ucDidReestablishConnection(_ uc: ACBUC) {
-//        self.logger.info("We restablished Network Connectivity \(uc)")
+        print("We restablished Network Connectivity \(uc)")
     }
 }
 
 
 extension UIViewController {
-func dismissKeyboard() {
-       let tap: UITapGestureRecognizer = UITapGestureRecognizer( target:     self, action:    #selector(UIViewController.dismissKeyboardTouchOutside))
-       tap.cancelsTouchesInView = false
-       view.addGestureRecognizer(tap)
+    func dismissKeyboard() {
+        let tap: UITapGestureRecognizer = UITapGestureRecognizer( target:     self, action:    #selector(UIViewController.dismissKeyboardTouchOutside))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
     }
     
     @objc private func dismissKeyboardTouchOutside() {
-       view.endEditing(true)
+        view.endEditing(true)
     }
 }

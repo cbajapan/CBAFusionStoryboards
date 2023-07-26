@@ -10,35 +10,39 @@ import FCSDKiOS
 import OSLog
 import AVKit
 
-class CallViewController: UIViewController {
+class CallViewController: UIViewController, ACBClientCallDelegate {
     
     @IBOutlet var remoteVideoView: UIView!
     @IBOutlet var localVideoView: UIView!
     
-    @IBOutlet var localWidthContraint: NSLayoutConstraint!
-    @IBOutlet var localHeightConstraint: NSLayoutConstraint!
-    @IBOutlet var localVideoTopConstraint: NSLayoutConstraint!
-    @IBOutlet var localVideoBottomConstraint: NSLayoutConstraint!
-    @IBOutlet var localVideoTrailingConstraint: NSLayoutConstraint!
-    
-    @IBOutlet var remoteVideoTrailingConstraint: NSLayoutConstraint!
-    @IBOutlet var remoteVideoTopConstraint: NSLayoutConstraint!
-    @IBOutlet var remoteVideoLeadingConstraint: NSLayoutConstraint!
-    
     
     var call: ACBClientCall?
+    var phone: ACBClientPhone?
     var acbuc: ACBUC?
     var recipient = ""
-//    var logger = Logger(subsystem: "CallViewController", category: "CallViewController")
+    var isManualSegue = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
         dismissKeyboard()
-        
         // Do any additional setup after loading the view.
-        Task {
-            await ACBClientPhone.requestMicrophoneAndCameraPermission(true, video: true)
-            self.call = try await initializeFCSDKCall()
+    }
+    
+    
+    override func viewDidAppear(_ animated: Bool) {
+        if isManualSegue {
+            Task { [weak self] in
+                guard let self else { return }
+                guard let phone = self.phone else { return }
+                guard let call = self.call else { return }
+                call.delegate = self
+                await self.answerCall(phone, received: call)
+            }
+        } else {
+            Task { [weak self] in
+                guard let self else { return }
+                self.call = try await initializeFCSDKCall()
+            }
         }
     }
     
@@ -48,39 +52,40 @@ class CallViewController: UIViewController {
      
      // In a storyboard-based application, you will often want to do a little preparation before navigation
      override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-     // Get the new view controller using segue.destination.
-     // Pass the selected object to the new view controller.
+     Get the new view controller using segue.destination.
+     Pass the selected object to the new view controller.
      }
      */
     
     var isFrontCamera = true
     @IBAction func switchViews(_ sender: Any) {
-
-        Task { @MainActor in
+        
+        Task { @MainActor [weak self] in
+            guard let self else { return }
             if isFrontCamera {
                 self.acbuc?.phone.setCamera(.back)
-                acbuc?.phone.previewView = self.remoteVideoView
+                self.acbuc?.phone.previewView = self.remoteVideoView
                 self.call?.remoteView = self.localVideoView
-                isFrontCamera = false
+                self.isFrontCamera = false
             } else {
                 self.acbuc?.phone.setCamera(.front)
-                acbuc?.phone.previewView = self.localVideoView
+                self.acbuc?.phone.previewView = self.localVideoView
                 self.call?.remoteView = self.remoteVideoView
-                isFrontCamera = true
+                self.isFrontCamera = true
             }
         }
     }
     
-    @IBAction func unwindSegue(_ sender: UIStoryboardSegue) {
+    override func viewWillDisappear(_ animated: Bool) {
         Task {
-            await endCall()
+            await self.endCall()
         }
     }
     
+    
     func initializeFCSDKCall() async throws -> ACBClientCall? {
         guard let uc = self.acbuc else { throw OurErrors.nilACBUC }
-        await setPhoneDelegate(uc)
-        Task { @MainActor [weak self] in
+        await MainActor.run { [weak self] in
             guard let self else { return }
             uc.phone.previewView = self.localVideoView
         }
@@ -91,187 +96,98 @@ class CallViewController: UIViewController {
             video: .sendAndReceive,
             delegate: self
         )
+        outboundCall?.delegate = self
+        
         uc.phone.mirrorFrontFacingCameraPreview = true
         self.call = outboundCall
         self.call?.enableLocalVideo(true)
         
-        Task { @MainActor [weak self] in
+        await MainActor.run { [weak self] in
             guard let self else { return }
             self.call?.remoteView = self.remoteVideoView
         }
         return self.call
     }
     
-    func setPhoneDelegate(_ uc: ACBUC) async {
-        uc.phone.delegate = self
-    }
-    
 }
 
-extension CallViewController: ACBClientCallDelegate {
+extension CallViewController {
     
     
-    @MainActor private func endCall() async {
+    private func endCall() async {
         await call?.end()
-    }
-    
-    
-    @MainActor
-    func notifyInCall() async {
-        //        await self.inCall()
-        //        isStreaming = true
+        if isManualSegue {
+            dismiss(animated: true)
+        }
     }
     
     func didChange(_ status: ACBClientCallStatus, call: ACBClientCall) async {
-        print("STATUS____", status)
-        Task { @MainActor in
-            //            self.callStatus = status.rawValue
-        }
         switch status {
         case .setup:
             break
         case .preparingBufferViews:
-            //Just wait a second if we are answering from callkit for the view
-            if #available(iOS 16.0, *) {
-                try? await Task.sleep(until: .now + .seconds(1), clock: .suspending)
-            } else {
-                try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
-            }
-            //            if isBuffer {
-            //                await setupBufferViews()
-            //            }
+            break
         case .alerting:
-            await self.alerting()
+            break
         case .ringing:
-            await ringing()
+            break
         case .mediaPending:
             break
         case .inCall:
-            await notifyInCall()
+            break
         case .timedOut:
-            await setErrorMessage(message: "Call timed out")
+            break
         case .busy:
-            await setErrorMessage(message: "User is Busy")
+            break
         case .notFound:
-            await setErrorMessage(message: "Could not find user")
+            break
         case .error:
-            await setErrorMessage(message: "Unkown Error")
+            break
         case .ended:
-            Task { @MainActor in
-                await self.endCall()
-            }
+            await self.endCall()
         @unknown default:
             break
         }
     }
     
-    @MainActor
-    func alerting() async {
-        //        self.hasStartedConnecting = true
-    }
-    
-    @MainActor
-    func inCall() async {
-        //        self.isRinging = false
-        //        self.hasConnected = true
-        //        self.connectDate = Date()
-    }
-    
-    @MainActor
-    func ringing() async {
-        //        self.hasStartedConnecting = false
-        //        self.connectingDate = Date()
-        //        self.isRinging = true
-    }
-    
-    @MainActor
-    func setErrorMessage(message: String) async {
-        //        self.sendErrorMessage = true
-        //        self.errorMessage = message
-    }
-    
     func didReceiveSessionInterruption(_ message: String, call: ACBClientCall) async {
         if message == "Session interrupted" {
-            //            if  self.fcsdkCall?.call != nil {
-            //                if self.fcsdkCall?.call?.status == .inCall {
-            //                    if !self.isOnHold {
-            //                        call.hold()
-            //                        self.isOnHold = true
-            //                    }
-            //                }
-            //            }
+            
         }
     }
     
     func didReceiveCallFailure(with error: Error, call: ACBClientCall) async {
-        await MainActor.run {
-            //            self.sendErrorMessage = true
-            //            self.errorMessage = error.localizedDescription
-        }
+        
     }
     
     
     func didReceiveDialFailure(with error: Error, call: ACBClientCall) async {
-        await MainActor.run {
-            //            self.sendErrorMessage = true
-            //            self.errorMessage = error.localizedDescription
-        }
+        
     }
     
     func didReceiveCallRecordingPermissionFailure(_ message: String, call: ACBClientCall?) async {
-        await MainActor.run {
-            //            self.sendErrorMessage = true
-            //            self.errorMessage = message
-        }
+        
     }
     
     func call(_ call: ACBClientCall, didReceiveSSRCsForAudio audioSSRCs: [String], andVideo videoSSRCs: [String]) {
-//        self.logger.info("Received SSRC information for AUDIO \(audioSSRCs) and VIDEO \(videoSSRCs)")
+        //        print("Received SSRC information for AUDIO \(audioSSRCs) and VIDEO \(videoSSRCs)")
     }
     
     internal func call(_ call: ACBClientCall, didReportInboundQualityChange inboundQuality: Int) {
-//        self.logger.info("Call Quality: \(inboundQuality)")
+        print("Call Quality: \(inboundQuality)")
     }
     
     func didReceiveMediaChangeRequest(_ call: ACBClientCall) async {
-        let audio = call.hasRemoteAudio
-        let video = call.hasRemoteVideo
-//        self.logger.info("HAS AUDIO \(audio)")
-//        self.logger.info("HAS VIDEO \(video)")
+        print("HAS AUDIO \(call.hasRemoteAudio)")
+        print("HAS VIDEO \(call.hasRemoteVideo)")
     }
-}
-
-
-
-
-
-
-extension CallViewController: ACBClientPhoneDelegate  {
     
-    
-    //Receive calls with FCSDK
-    func phone(_ phone: ACBClientPhone, received call: ACBClientCall) async {
-
-    }
- 
-    func phone(_ phone: ACBClientPhone, didChange settings: ACBVideoCaptureSetting?, forCamera camera: AVCaptureDevice.Position) async {
-//        self.logger.info("didChangeCaptureSetting - resolution=\(String(describing: settings?.resolution.rawValue)) frame rate=\(String(describing: settings?.frameRate)) camera=\(camera.rawValue)")
-    }
-}
-
-extension UIView {
-    func findConstraint(layoutAttribute: NSLayoutConstraint.Attribute) -> NSLayoutConstraint? {
-        if let constraints = superview?.constraints {
-            for constraint in constraints where itemMatch(constraint: constraint, layoutAttribute: layoutAttribute) {
-                return constraint
-            }
+    func answerCall(_ phone: ACBClientPhone, received call: ACBClientCall) async {
+        await MainActor.run { [weak self] in
+            guard let self else { return }
+            call.remoteView = self.remoteVideoView
+            phone.previewView = self.localVideoView
         }
-        return nil
-    }
-
-    func itemMatch(constraint: NSLayoutConstraint, layoutAttribute: NSLayoutConstraint.Attribute) -> Bool {
-        let firstItemMatch = constraint.firstItem as? UIView == self && constraint.firstAttribute == layoutAttribute
-        let secondItemMatch = constraint.secondItem as? UIView == self && constraint.secondAttribute == layoutAttribute
-        return firstItemMatch || secondItemMatch
+        await call.answer(withAudio: .sendAndReceive, andVideo: .sendAndReceive)
     }
 }
